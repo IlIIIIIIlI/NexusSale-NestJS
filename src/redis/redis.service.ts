@@ -5,7 +5,7 @@ import { RedisService } from 'nestjs-redis'
 export class RedisClientService {
   constructor(private readonly redisService: RedisService) {}
 
-  //连接配置已在app.module设置
+  //The connection configuration has been set in app.module
   async getSeckillRedisClient() {
     return await this.redisService.getClient('seckill')
   }

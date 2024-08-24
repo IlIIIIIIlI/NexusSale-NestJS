@@ -33,7 +33,7 @@ export class SeckillModule implements OnApplicationBootstrap {
 
     await kafkaConsumer.run({
       eachMessage: async ({ topic, partition, message }) => {
-        this.logger.log('得到的生产者的数据为：')
+        this.logger.log('The obtained producer data is:')
         this.logger.verbose({ topic, partition, offset: message.offset, value: message.value?.toString() })
 
         let value: CreateOrderDTO
@@ -47,7 +47,7 @@ export class SeckillModule implements OnApplicationBootstrap {
             this.logger.error(err)
             return
           }
-          this.logger.log(`订单【${order.id}】信息已存入数据库`)
+          this.logger.log(`Order【${order.id}】Information has been stored in the database`)
         }
       },
     })

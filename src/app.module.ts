@@ -47,7 +47,7 @@ const TypeOrmModuleInstance = TypeOrmModule.forRoot({
       ttl: 10, // seconds
       max: 999, // maximum number of items in cache
     }),
-    //redis-io连接配置,用于手动操作redis
+    // redis-io connection configuration for manual operation of redis
     RedisModule.register([redisSeckill]),
     OrderModule,
     SeckillModule,

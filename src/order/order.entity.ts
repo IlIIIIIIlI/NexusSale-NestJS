@@ -32,5 +32,5 @@ export class Order {
   readonly updateDate?: Date
 
   @Column()
-  kafkaRawMessage?: string //从kafka获取的消费原始数据
+  kafkaRawMessage?: string //Consumption raw data obtained from kafka
 }

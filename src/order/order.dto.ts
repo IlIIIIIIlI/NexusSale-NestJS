@@ -22,6 +22,6 @@ export class CreateOrderDTO {
 }
 
 export class UpdateOrderDTO extends PickType(Order, ['user', 'goods', 'openid', 'remark', 'kafkaRawMessage']) {
-  @ApiProperty({ description: '订单id', example: '' })
+  @ApiProperty({ description: 'order id', example: '' })
   id: string
 }

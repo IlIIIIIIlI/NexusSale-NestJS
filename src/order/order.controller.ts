@@ -4,7 +4,7 @@ import { CreateOrderDTO, UpdateOrderDTO } from './order.dto'
 import { Order } from './order.entity'
 import { OrderService } from './order.service'
 
-@ApiTags('订单管理')
+@ApiTags('Order management')
 @Controller('order')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}

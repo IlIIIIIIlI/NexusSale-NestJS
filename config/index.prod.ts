@@ -1,6 +1,6 @@
 const config = {
   database: {
-    ip: 'mysql', //docker-compose的link里指定的mysql容器主机名
+    ip: 'mysql', //docker-compose link mysql host name
     port: 3306,
     username: 'root',
     password: 'password',
@@ -9,12 +9,12 @@ const config = {
   redisCache: {
     host: 'redis',
     port: 6379,
-    duration: 30 * 1000, //数据库查询缓存时间30s
+    duration: 30 * 1000, //Database query cache time 30s
   },
   redisSeckill: {
-    seckillCounterKey: 'secKillCounter', //库存计数器key
+    seckillCounterKey: 'secKillCounter', //Inventory counter key
     seckillHashKey: 'seckill-temp',
-    seckillTempLockKey: 'lock-seckill-update', //同步锁的键
+    seckillTempLockKey: 'lock-seckill-update', //sync lock key
     name: 'seckill',
     host: 'redis',
     port: 6379,
@@ -23,7 +23,7 @@ const config = {
   kafkaConfig: {
     kafkaHost: 'kafka:9092',
     topic: 'PHONE_NUMBER',
-    partitionMaxIndex: 0, //Producer发送数据时分区范围 [0,partitionCount]
+    partitionMaxIndex: 0, //When Producer sends data, the partition range is [0, partitionCount]
   },
   logger: ['error', 'warn', 'log'],
 }

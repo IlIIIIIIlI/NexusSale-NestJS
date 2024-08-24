@@ -37,10 +37,10 @@ export class SeckillService {
   async secKill(params) {
     const { seckillCounterKey } = redisSeckill
 
-    this.logger.log(`当前请求count：${this.count++}`)
+    this.logger.log(`current requestcount：${this.count++}`)
 
-    //TIPS:使用乐观锁解决高并发
-    const [watchError] = await awaitWrap(this.seckillRedisClient.watch(seckillCounterKey)) //监听counter字段
+    //TIPS: Use optimistic locking to solve high concurrency
+    const [watchError] = await awaitWrap(this.seckillRedisClient.watch(seckillCounterKey)) //Listen to the counter field
     watchError && this.logger.error(watchError)
     if (watchError) return watchError
 
@@ -50,20 +50,20 @@ export class SeckillService {
 
     if (typeof reply === 'string') {
       if (parseInt(reply) <= 0) {
-        this.logger.warn('已经卖光了')
-        return '已经卖光了'
+        this.logger.warn('Already sold out')
+        return 'Already sold out'
       }
     } else {
       this.logger.warn('Invalid reply from Redis')
       return 'Invalid reply from Redis'
     }
 
-    //更新redis的counter数量减一
+    //Update the counter number of redis by one
     const [execError, replies] = await awaitWrap(this.seckillRedisClient.multi().decr(seckillCounterKey).exec())
     execError && this.logger.error(execError)
     if (execError) return execError
 
-    //counter字段正在操作中，等待counter被其他释放
+    //The counter field is in operation, waiting for counter to be released by others
     if (!replies) {
       this.logger.warn('counter被使用')
       this.secKill(params)
@@ -79,7 +79,7 @@ export class SeckillService {
       messages: [{ value: JSON.stringify(params) }],
     }
 
-    this.logger.log('生产数据payload:')
+    this.logger.log('production data payload:')
     this.logger.verbose(payload)
 
     try {
@@ -92,27 +92,27 @@ export class SeckillService {
     }
   }
 
-  // 设置剩余库存
+  // Set remaining inventory
   async setRemainCount(remainCount: number) {
     const { seckillCounterKey } = redisSeckill
 
-    //TIPS:使用乐观锁解决高并发
-    const [watchError] = await awaitWrap(this.seckillRedisClient.watch(seckillCounterKey)) //监听counter字段
+    //TIPS: Use optimistic locking to solve high concurrency
+    const [watchError] = await awaitWrap(this.seckillRedisClient.watch(seckillCounterKey)) //Listen to the counter field
     watchError && this.logger.error(watchError)
     if (watchError) return watchError
 
-    //更新redis的counter数量
+    //Update the number of counters in redis
     const [execError, replies] = await awaitWrap(this.seckillRedisClient.multi().set(seckillCounterKey, remainCount).get(seckillCounterKey).exec())
     execError && this.logger.error(execError)
     if (execError) return execError
 
-    //counter字段正在操作中，等待counter被其他释放
+    //The counter field is in operation, waiting for counter to be released by others
     if (!replies) {
       this.logger.warn('counter被使用')
       return this.setRemainCount(remainCount)
     }
 
     console.log('replies: ', replies)
-    return `更新剩余商品数成功！现在剩余：${replies?.[1]?.[1]}`
+    return `The number of remaining products has been updated successfully! Remaining now：${replies?.[1]?.[1]}`
   }
 }

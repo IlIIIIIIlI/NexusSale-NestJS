@@ -81,8 +81,6 @@ NexusSale leverages a carefully selected stack of cutting-edge technologies:
 - npm or yarn
 - Postman (for API testing)
 
-您说得对，使用 Docker Compose 确实可以简化安装过程。我们来修改一下 Installation 部分，使其更加简洁和直接。以下是更新后的 Installation 部分：
-
 ## Installation
 
 1. Clone the repository:

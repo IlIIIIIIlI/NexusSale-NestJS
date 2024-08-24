@@ -9,12 +9,12 @@ const config = {
   redisCache: {
     host: 'redis',
     port: 6379,
-    duration: 30 * 1000, //数据库查询缓存时间30s
+    duration: 30 * 1000,
   },
   redisSeckill: {
-    seckillCounterKey: 'secKillCounter', //库存计数器key
+    seckillCounterKey: 'secKillCounter',
     seckillHashKey: 'seckill-temp',
-    seckillTempLockKey: 'lock-seckill-update', //同步锁的键
+    seckillTempLockKey: 'lock-seckill-update',
     name: 'seckill',
     host: 'redis',
     port: 6379,
