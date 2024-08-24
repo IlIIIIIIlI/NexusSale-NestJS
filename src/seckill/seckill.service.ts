@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import * as kafka from 'kafka-node'
+import { Kafka, Producer } from 'kafkajs'
 import * as Redis from 'ioredis'
 import { set } from 'lodash'
 import { RedisClientService } from '../redis/redis.service'
@@ -8,34 +8,29 @@ import { awaitWrap } from '@/utils'
 
 const { redisSeckill, kafkaConfig } = getConfig()
 
-const Producer = kafka.Producer
-const kafkaClient = new kafka.KafkaClient({ kafkaHost: kafkaConfig.kafkaHost })
-const producer = new Producer(kafkaClient, {
-  // Configuration for when to consider a message as acknowledged, default 1
-  requireAcks: 1,
-  // The amount of time in milliseconds to wait for all acks before considered, default 100ms
-  ackTimeoutMs: 100,
-  // Partitioner type (default = 0, random = 1, cyclic = 2, keyed = 3, custom = 4), default 0
-  partitionerType: 2,
-})
-
 @Injectable()
 export class SeckillService {
-  logger = new Logger('SeckillService')
-
-  seckillRedisClient!: Redis.Redis
-
-  count = 0
+  private readonly logger = new Logger(SeckillService.name)
+  private seckillRedisClient!: Redis.Redis
+  private producer: Producer
+  private count = 0
 
   constructor(private readonly redisClientService: RedisClientService) {
     this.redisClientService.getSeckillRedisClient().then(client => {
       this.seckillRedisClient = client
     })
+
+    const kafka = new Kafka({
+      clientId: 'seckill-service',
+      brokers: [process.env.KAFKA_BROKERS || 'kafka:9092'],
+    })
+
+    this.producer = kafka.producer()
+    this.producer.connect().catch(e => this.logger.error('Failed to connect to Kafka', e))
   }
 
   async initCount() {
     const { seckillCounterKey } = redisSeckill
-
     return await this.seckillRedisClient.set(seckillCounterKey, 100)
   }
 
@@ -53,9 +48,14 @@ export class SeckillService {
     getError && this.logger.error(getError)
     if (getError) return getError
 
-    if (parseInt(reply) <= 0) {
-      this.logger.warn('已经卖光了')
-      return '已经卖光了'
+    if (typeof reply === 'string') {
+      if (parseInt(reply) <= 0) {
+        this.logger.warn('已经卖光了')
+        return '已经卖光了'
+      }
+    } else {
+      this.logger.warn('Invalid reply from Redis')
+      return 'Invalid reply from Redis'
     }
 
     //更新redis的counter数量减一
@@ -74,29 +74,22 @@ export class SeckillService {
     // this.logger.verbose(replies)
     set(params, 'remainCount', replies[0]?.[1])
 
-    const payload = [
-      {
-        topic: kafkaConfig.topic,
-        partition: 0,
-        messages: [JSON.stringify(params)],
-      },
-    ]
+    const payload = {
+      topic: kafkaConfig.topic,
+      messages: [{ value: JSON.stringify(params) }],
+    }
 
     this.logger.log('生产数据payload:')
     this.logger.verbose(payload)
 
-    return new Promise((resolve, reject) => {
-      producer.send(payload, (err, kafkaProducerResponse) => {
-        if (err) {
-          this.logger.error(err)
-          reject(err)
-          return err
-        }
-
-        this.logger.verbose(kafkaProducerResponse)
-        resolve({ payload, kafkaProducerResponse })
-      })
-    })
+    try {
+      const kafkaProducerResponse = await this.producer.send(payload)
+      this.logger.verbose(kafkaProducerResponse)
+      return { payload, kafkaProducerResponse }
+    } catch (err) {
+      this.logger.error(err)
+      throw err
+    }
   }
 
   // 设置剩余库存

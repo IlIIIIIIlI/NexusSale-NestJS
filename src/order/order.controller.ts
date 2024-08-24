@@ -10,27 +10,32 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Get('/all')
-  @ApiOperation({ description: '获取所有订单' })
+  @ApiOperation({ description: 'Get all orders' })
   order(): Promise<Order[]> {
     return this.orderService.getAllOrder()
   }
 
-  @ApiOperation({ description: '通过ID获取订单' })
+  @ApiOperation({ description: 'Get orders according to id' })
   @Get(':id')
   async getRoleById(@Param('id') id: string) {
     const role = await this.orderService.findOneById(id)
     return role
   }
 
-  @ApiOperation({ description: '新增订单' })
+  @ApiOperation({ description: 'add more orders' })
   @Post()
   async addRole(@Body() roleInfo: CreateOrderDTO) {
-    const saveResult = await this.orderService.saveOne(roleInfo)
-
-    return saveResult
+    try {
+      console.log('Received order:', roleInfo)
+      const saveResult = await this.orderService.saveOne(roleInfo)
+      console.log('Save result:', saveResult)
+      return saveResult
+    } catch (error) {
+      console.error('Error in addRole:', error)
+    }
   }
 
-  @ApiOperation({ description: '更新订单信息' })
+  @ApiOperation({ description: 'update orders' })
   @Put()
   async updateRole(@Body() role: UpdateOrderDTO) {
     const { id: roleId, ...roleInfo } = role
@@ -39,7 +44,7 @@ export class OrderController {
     return saveResult
   }
 
-  @ApiOperation({ description: '删除订单' })
+  @ApiOperation({ description: 'delete orders' })
   @ApiBody({
     schema: {
       example: ['1sf6g4s8g4sg'],

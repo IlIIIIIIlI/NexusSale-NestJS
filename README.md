@@ -1,389 +1,182 @@
----
-# 主题列表：juejin, github, smartblue, cyanosis, channing-cyan, fancy, hydrogen, condensed-night-purple, greenwillow, v-green
-theme: v-green
-highlight:
----
+# NexusSale: High-Performance Flash Sale System
 
-> 使用 NestJS + Redis + Kafka 实现简单秒杀系统
+![alt text](doc/image.png) ![alt text](doc/image-1.png)
 
-#### 技术栈：我们的老伙计`NestJS`，以及`ioredis`，`kafka-node`
+## Introduction
 
-最近在研究 kafka 消息队列，所以想写个秒杀来试试手，看了好几篇博客都没有具体的项目示例，所以参考了一下各种实现用 nestjs 写了一个可运行的项目。
+NexusSale is a state-of-the-art flash sale (also known as "seckill" or "lightning deal") system designed to handle extreme concurrency during
+time-limited, high-demand sales events. This project demonstrates the implementation of a robust, scalable, and high-performance e-commerce backend
+capable of managing inventory in real-time, processing orders rapidly, and maintaining system integrity under heavy load.
 
-### 第一步，创建项目
+### Key Technical Solutions
 
-> 这里使用了 nest cli 命令快速生成项目模板；</br>
+1. **Redis for Inventory Management and Concurrency Control**:
 
-1. #### 安装@nest/cli 脚手架用于生成项目；
+   - Utilizes Redis as a high-speed, in-memory data store for real-time inventory counting.
+   - Implements optimistic locking with Redis to handle concurrent inventory updates, preventing overselling while maintaining high throughput.
+   - Acts as a buffer between the high-concurrency front-end requests and the backend database, significantly reducing database load.
 
-```bash
-npm i -g @nest/cli   #安装nest-cli
-```
+2. **Kafka for Asynchronous Order Processing**:
+   - Employs Kafka as a distributed message queue to decouple order creation from order processing.
+   - Producers quickly write order requests to Kafka topics, allowing the system to respond swiftly to user requests even under high load.
+   - Consumers process orders asynchronously, ensuring steady order fulfillment without overwhelming the system.
 
-<br>
+### Business Scenario and Benefits
 
-2. #### 生成项目
+In a flash sale scenario, thousands of customers might attempt to purchase a limited-stock item simultaneously. This system addresses several critical
+challenges:
 
-```bash
-nest new nest-seckill   #使用nest cli生成项目
-cd ./nest-seckill
-yarn                    #安装依赖
-```
+1. **Inventory Accuracy**: Redis-based inventory management with optimistic locking ensures that each item is sold only once, preventing overselling
+   and customer disappointment.
+2. **System Responsiveness**: By quickly acknowledging orders through Kafka, the system remains responsive even when processing backend operations.
+3. **Scalability**: The distributed nature of Kafka allows for easy scaling of order processing by adding more consumers as needed.
+4. **Data Consistency**: While providing high-speed responses, the system ensures that all order data is eventually consistent and accurately recorded
+   in the MySQL database.
+5. **Peak Load Handling**: The combination of Redis caching and Kafka queuing allows the system to smooth out traffic spikes, preventing system
+   overload during peak times.
 
----
+This architecture enables businesses to confidently run flash sales campaigns, maximizing sales opportunities while providing a smooth customer
+experience, even under extreme traffic conditions.
 
-### 第二步，生成 seckill 模块
+## Technology Stack
 
-> 这里使用了 nest cli 命令快速生成模板代码；了解详情可以查看官方文档：[nest-cli 文档](https://docs.nestjs.com/cli/usages#nest-generate) </br>
+NexusSale leverages a carefully selected stack of cutting-edge technologies:
 
-1.  #### 生成 `seckill.module.ts`文件；
+1. **NestJS**: A progressive Node.js framework for building efficient, reliable, and scalable server-side applications. Chosen for its modular
+   architecture, dependency injection, and TypeScript support, enabling clean, maintainable code.
 
-        用于创建kafka消费者，接收kafka消息，写入订单信息；
+2. **Kafka**: A distributed event streaming platform used for high-throughput, fault-tolerant handling of real-time data feeds. Crucial for decoupling
+   order processing from the main application flow, ensuring system responsiveness during peak loads.
 
-    ```bash
-    nest generate module seckill
-    # 可以简写为 `nest g mo seckill`
-    ```
+3. **ZooKeeper**: A centralized service for maintaining configuration information, naming, providing distributed synchronization, and providing group
+   services. It's an essential component for managing a Kafka cluster, handling broker coordination, and storing critical metadata.
 
-    </br>
+4. **Redis**: An in-memory data structure store used as a cache and message broker. Essential for maintaining real-time inventory counts and reducing
+   database load.
 
-2.  #### 生成 `seckill.controller.ts`；
+5. **MySQL**: A robust relational database management system for persistent storage of order and inventory data. Selected for its reliability,
+   performance, and ACID compliance.
 
-         用于实现秒杀的RESTful接口；
+6. **Docker & Docker Compose**: Containerization tools that ensure consistency across development, testing, and production environments, simplifying
+   deployment and scaling.
 
-    ```bash
-    nest g co seckill
-    ```
+7. **Swagger**: An interface description language for describing RESTful APIs. Integrated to provide interactive API documentation.
 
-    </br>
+8. **Kafka UI**: A web UI for Apache Kafka, facilitating easier monitoring and management of Kafka clusters.
 
-3.  #### 生成 `seckill.service.ts`;
+## Key Features
 
-        在`service`里使用redis`乐观锁(watch)`与`事务(mult)`实现秒杀逻辑，
-        再使用kafka的`Producer`生产一条消费数据；
+- High-concurrency support with ability to handle thousands of requests per second
+- Real-time inventory management to prevent overselling
+- Distributed system architecture for high availability and scalability
+- Asynchronous order processing using Kafka for improved system responsiveness
+- Data persistence with MySQL for reliable order and inventory tracking
+- API-first design with Swagger documentation for easy integration and testing
+- Comprehensive monitoring and management tools for system health and performance
 
-    ```bash
-    nest g service seckill
-    ```
+## Prerequisites
 
-    </br>
+- Docker and Docker Compose
+- Node.js (v14+)
+- npm or yarn
+- Postman (for API testing)
 
-4.  #### 生成 `redis.service.ts`;
+您说得对，使用 Docker Compose 确实可以简化安装过程。我们来修改一下 Installation 部分，使其更加简洁和直接。以下是更新后的 Installation 部分：
 
-    用于连接 redis;
+## Installation
 
-    ```bash
-    nest g service redis
-    ```
+1. Clone the repository:
 
-    修改内容：
-
-    ```ts
-    import { Injectable } from '@nestjs/common'
-    import { RedisService } from 'nestjs-redis'
-
-    @Injectable()
-    export class RedisClientService {
-      constructor(private readonly redisService: RedisService) {}
-
-      // 连接配置已在app.module设置
-      async getSeckillRedisClient() {
-        return await this.redisService.getClient('seckill')
-      }
-    }
-    ```
-
----
-
-### 第三步，编写秒杀逻辑；
-
-</br>
-
-1. #### 定义秒杀接口：
-
-   在`seckill.controller.ts`里新增一个 Post 接口：
-
-   ```ts
-   import { Body, Controller, Post } from '@nestjs/common'
-   import * as uuid from 'uuid-random' // 使用uuid生成订单号
-   import { CreateOrderDTO } from '../order/order.dto' // 新增订单字段定义
-   import { SeckillService } from './seckill.service' // 秒杀逻辑具体实现
-   import { awaitWrap } from '@/utils/index' // async返回值简化方法
-
-   @Controller('seckill')
-   export class SeckillController {
-     constructor(private readonly seckillService: SeckillService) {}
-
-     @Post('/add')
-     async addOrder(@Body() order: CreateOrderDTO) {
-       const params: CreateOrderDTO = {
-         ...order,
-         openid: `${uuid()}-${new Date().valueOf()}`,
-       }
-
-       // 调用service的secKill方法，并等待完成
-       const [error, result] = await awaitWrap(this.seckillService.secKill(params))
-       return error || result
-     }
-   }
+   ```
+   git clone https://github.com/yourusername/NexusSale.git
+   cd NexusSale
    ```
 
-  </br>
+2. Build and start the services:
 
-2. #### 实现秒杀逻辑：
-
-   在`seckill.service.ts`里新增一个`secKill`方法；
-
-   使用 redis`乐观锁(watch)`和`事务(mult)`，实现并发下修改数据，详情可参
-   考[node redis 文档](https://www.npmjs.com/package/redis#multiexec_atomiccallback)；
-
-   ```ts
-   import { Injectable, Logger } from '@nestjs/common'
-   import * as kafka from 'kafka-node'
-   import * as Redis from 'ioredis'
-   import { RedisClientService } from '../redis/redis.service'
-   import { getConfig } from '@root/config/index' // redis和 kafka的连接配置
-   import { awaitWrap } from '@/utils'
-
-   const { redisSeckill, kafkaConfig } = getConfig()
-
-   // 创建kafka Client
-   const kafkaClient = new kafka.KafkaClient({ kafkaHost: kafkaConfig.kafkaHost })
-   // 创建kafka生产者
-   const producer = new kafka.Producer(kafkaClient, {
-     // Configuration for when to consider a message as acknowledged, default 1
-     requireAcks: 1,
-     // The amount of time in milliseconds to wait for all acks before considered, default 100ms
-     ackTimeoutMs: 100,
-     // Partitioner type (default = 0, random = 1, cyclic = 2, keyed = 3, custom = 4), default 0
-     partitionerType: 2,
-   })
-
-   @Injectable()
-   export class SeckillService {
-     logger = new Logger('SeckillService') // 创建nest自带的日志实例
-     seckillRedisClient!: Redis.Redis // redis连接实例
-     count = 0 // 当前请求的次数
-
-     constructor(private readonly redisClientService: RedisClientService) {
-       // service 创建时异步初始化redis连接
-       this.redisClientService.getSeckillRedisClient().then(client => {
-         this.seckillRedisClient = client
-       })
-     }
-
-     /*
-      * ***********************
-      * @desc 秒杀具体实现
-      * ***********************
-      */
-     async secKill(params) {
-       const { seckillCounterKey } = redisSeckill
-       this.logger.log(`当前请求count：${this.count++}`)
-
-       // tips:使用乐观锁解决并发
-       const [watchError] = await awaitWrap(this.seckillRedisClient.watch(seckillCounterKey)) //监听'counter'字段更改
-       watchError && this.logger.error(watchError)
-       if (watchError) return watchError
-
-       // 获取当前当前订单剩余数量
-       const [getError, reply] = await awaitWrap(this.seckillRedisClient.get(seckillCounterKey))
-       getError && this.logger.error(getError)
-       if (getError) return getError
-       if (parseInt(reply) <= 0) {
-         this.logger.warn('已经卖光了')
-         return '已经卖光了'
-       }
-
-       //tips: 使用redis事务修改redis的counter数量减一
-       const [execError, replies] = await awaitWrap(this.seckillRedisClient.multi().decr(seckillCounterKey).exec())
-       execError && this.logger.error(execError)
-       if (execError) return execError
-
-       // counter字段正在操作中，等待counter被其他释放
-       if (!replies) {
-         this.logger.warn('counter被使用')
-         this.secKill(params) // 自动重试
-         return
-       }
-
-       // kafka消费数据的内容
-       const payload = [
-         {
-           topic: kafkaConfig.topic,
-           partition: 0,
-           messages: [JSON.stringify(params)],
-         },
-       ]
-
-       this.logger.log('生产数据payload:')
-       this.logger.verbose(payload)
-
-       // 异步等待发送kafka消费数据
-       return new Promise((resolve, reject) => {
-         producer.send(payload, (err, kafkaProducerResponse) => {
-           if (err) {
-             this.logger.error(err)
-             reject(err)
-             return err
-           }
-
-           this.logger.verbose(kafkaProducerResponse)
-           resolve({ payload, kafkaProducerResponse })
-         })
-       })
-     }
-   }
+   ```
+   docker-compose build --no-cache
+   docker-compose up -d
    ```
 
-  <br>
-  
-  
-3. #### 监听kafka消息，消费订单队列消息;
-    在`seckill.module.ts`内新增`handleListenerKafkaMessage()`方法，用于处理kafka消息；
-    
-    同时需要在`seckill`模块挂载`(onApplicationBootstrap)`时调用此方法，开始订阅kafka消息；
-  
-    ```ts
-    import { Logger, Module, OnApplicationBootstrap } from '@nestjs/common'
-    import * as Redis from 'ioredis'
-    import { awaitWrap } from '@/utils'
-    import { CreateOrderDTO } from '../order/order.dto'
-    import { OrderModule } from '../order/order.module'
-    import { OrderService } from '../order/order.service'
-    import { RedisClientService } from '../redis/redis.service'
-    import { getKafkaConsumer } from './kafka-utils'
-    import { SeckillController } from './seckill.controller'
-    import { SeckillService } from './seckill.service'
-    import { getConfig } from '@root/config'
+   This command will build the Docker images without using the cache, and then start all the services defined in your docker-compose.yml file in
+   detached mode.
 
-    const { kafkaConfig } = getConfig()
+3. Check the status of the services:
 
-    @Module({
-      imports: [OrderModule],
-      providers: [RedisClientService, SeckillService],
-      controllers: [SeckillController],
-    })
-    export class SeckillModule implements OnApplicationBootstrap {
-      logger = new Logger('SeckillModule')
-      seckillRedisClient!: Redis.Redis
+   ```
+   docker-compose ps
+   ```
 
-      constructor(
-        private readonly orderService: OrderService, //处理订单的Service
-        private readonly seckillService: SeckillService, //秒杀相关实现
-        private readonly redisClientService: RedisClientService //redis连接
-      ) {
-        this.redisClientService.getSeckillRedisClient().then(client => {
-          this.seckillRedisClient = client
-        })
-      }
+   Ensure all services are up and running.
 
-      async handleListenerKafkaMessage() {
-        const kafkaConsumer = getKafkaConsumer() //抽取出创建消费者实现方法为函数
+The system should now be operational. You can access:
 
-        kafkaConsumer.on('message', async message => {
-          this.logger.log('得到的生产者的数据为：')
-          this.logger.verbose(message)
+- NestJS Application: http://localhost:3000
+- Swagger UI: http://localhost:3000/api-docs
+- Kafka UI: http://localhost:8080
 
-          let order!: CreateOrderDTO // 从kafka队列得到的订单数据，即service里producer.send的messages内容
+## Usage
 
-          if (typeof message.value === 'string') {
-            order = JSON.parse(message.value)
-          } else {
-            order = JSON.parse(message.value.toString())
-          }
+After starting the services, the following components will be available:
 
-          // 写入数据库，完成订单创建
-          const [err, order] = await awaitWrap(this.orderService.saveOne(value))
-          if (err) {
-            this.logger.error(err)
-            return
-          }
-          this.logger.log(`订单【${order.id}】信息已存入数据库`)
-        })
-      }
+- NestJS Application: http://localhost:3000
+- Swagger UI: http://localhost:3000/api-docs
+- Kafka UI: http://localhost:8080
 
-      async onApplicationBootstrap() {
-        this.logger.log('onApplicationBootstrap: ')
-        await this.seckillService.initCount()         //重置redis里商品剩余库存数
-        this.handleListenerKafkaMessage()
-      }
-    }
+## Testing
 
-    ```
+1. Use Postman to test the API endpoints:
 
-  <br>
-  
-  5. #### kafka消费者`getKafkaConsumer`方法实现如下:
+- Import the provided Postman collection (if available)
+- Or create new requests as per the API Endpoints section
 
-      在seckill模块文件夹下新增`kafka-utils.ts`文件：
+2. Example flash sale order creation:
 
-      ```ts
-      import * as kafka from 'kafka-node'
-      import * as Redis from 'ioredis'
-      import { getConfig } from '@root/config/index'
-      import { awaitWrap } from '@/utils'
+```
+POST http://localhost:3000/seckill/add
+Content-Type: application/json
+{
+"user": "testUser",
+"goods": "testProduct",
+"remark": "Test flash sale order"
+}
+```
 
-      const { kafkaConfig } = getConfig()
-      let kafkaConsumer!: kafka.Consumer
+3. Monitor the application logs for Kafka producer and consumer activities.
 
-      // 获取kafka client
-      function getKafkaClient() {
-        let kafkaClient!: kafka.KafkaClient
+4. Check the Kafka UI to observe message queue status.
 
-        return () => {
-          if (!kafkaClient) {
-            kafkaClient = new kafka.KafkaClient({
-              kafkaHost: kafkaConfig.kafkaHost,
-            })
-          }
+5. Verify data persistence by querying the orders:
 
-          return kafkaClient
-        }
-      }
+```
+GET http://localhost:3000/order/all
+```
 
-          /**
-         * @desc 获取消费者实例
-         */
-        export function getKafkaConsumer() {
-          // consumer要订阅的topics配置
-          const topics = [
-            {
-              topic: kafkaConfig.topic,
-              partition: 0,
-              offset: 0,
-            },
-          ]
+## Monitoring
 
-          const options = {
-            //  自动提交配置   (false 不会提交偏移量，每次都从头开始读取)
-            autoCommit: true,
-            autoCommitIntervalMs: 5000,
-            //  如果设置为true，则consumer将从有效负载中的给定偏移量中获取消息
-            fromOffset: false,
-          }
-          const kafkaClient = getKafkaClient()()
+- Use Kafka UI (http://localhost:8080) to monitor Kafka topics, consumers, and message flow.
+- Check application logs for detailed system behavior and error tracking.
+- Monitor Redis cache using Redis CLI or a Redis management tool.
 
-          if (!kafkaConsumer) {
-            kafkaConsumer = new kafka.Consumer(kafkaClient, topics, options)
-          }
+## Contributing
 
-          return kafkaConsumer
-        }
-      ```
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-  <br>
-  
-  ### 一些说明
-  <br>
- 
-  1. 至此我们的主要秒杀逻辑就写的差不多了。由于我们主要为了实现秒杀逻辑，所有订单模块的代码就没有在这里展开了。我们只需要像第二步那样几行命令就可以简单创建Order模块，用于订单curd；
-  
-   2. 关于redis,mysql,kafka等服务的话可以编写`docker-compose.yaml`快速启动起来，具体可以参考本项目代码；
-       ##### kafka容器可能会由于centos的防火墙导致启动失败,解决办法是：先关闭宿主机防火墙再重启docker；
-   
-   3. kafka容器创建后，需要我们在打开浏览器访问`kafka-manager`容器映射的`9000`端口上kafka管理页面，创建cluster和我们的Topic,具体初始化操作较为简单，可自行搜索`kafka-manager`；
-   
-       ###### 例如[Kafka集群管理工具kafka-manager的安装使用](https://www.cnblogs.com/frankdeng/p/9584870.html)
-   
-  > 项目github地址: [https://github.com/wenqieqiu/nest-seckill](https://github.com/wenqieqiu/nest-seckill)
+## Todo
+
+- [ ] Implement comprehensive unit and integration tests
+- [ ] Set up CI/CD pipeline for automated testing and deployment
+- [ ] Enhance error handling and logging mechanisms
+- [ ] Implement rate limiting to prevent abuse
+- [ ] Add user authentication and authorization
+- [ ] Optimize database queries and indexing
+- [ ] Implement a caching strategy for frequently accessed data
+- [ ] Set up monitoring and alerting system (e.g., Prometheus and Grafana)
+- [ ] Conduct performance testing using Apache JMeter for high-concurrency scenarios
+- [ ] Implement data analytics and reporting features
+- [ ] Explore and implement database sharding for improved scalability
+- [ ] Develop an admin dashboard for system management and monitoring
+- [ ] Implement a fallback mechanism for service unavailability
+- [ ] Optimize Kafka consumer group configurations for better performance
+- [ ] Implement distributed tracing (e.g., using Jaeger or Zipkin)

@@ -6,28 +6,28 @@ export class Order {
   @PrimaryGeneratedColumn('uuid')
   readonly id: string
 
-  @ApiProperty({ description: '用户', example: 'user1' })
+  @ApiProperty({ description: 'User', example: 'user1' })
   @Column()
   user: string
 
-  @ApiProperty({ description: '商品', example: '小米11' })
+  @ApiProperty({ description: 'Goods', example: 'PS5' })
   goods: string
 
   @Column({ unique: true })
   openid: string
 
-  @Column()
-  remainCount: number //剩余数量
+  @Column({ default: 0 })
+  remainCount: number
 
-  @ApiPropertyOptional({ description: '订单备注', example: '双十一特惠' })
+  @ApiPropertyOptional({ description: 'Order Desc', example: 'Black Friday' })
   @Column()
   remark?: string
 
-  @ApiPropertyOptional({ description: '创建时间' })
+  @ApiPropertyOptional({ description: 'Created' })
   @CreateDateColumn()
   readonly createdDate?: Date
 
-  @ApiPropertyOptional({ description: '更新时间' })
+  @ApiPropertyOptional({ description: 'Updated' })
   @UpdateDateColumn()
   readonly updateDate?: Date
 

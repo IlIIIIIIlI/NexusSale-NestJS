@@ -16,6 +16,8 @@
       "@/*": ["./src/*"],
       "@root/*": ["./*"]
     },
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "types": ["ioredis"],
     "incremental": true
   }
 }
