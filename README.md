@@ -1,4 +1,4 @@
-# NexusSale: High-Performance Flash Sale System
+# NexusSale: High-Performance Flash Sale System - NestJS
 
 ![alt text](doc/image.png) ![alt text](doc/image-1.png)
 
@@ -40,7 +40,7 @@ experience, even under extreme traffic conditions.
 
 ## Technology Stack
 
-NexusSale leverages a carefully selected stack of cutting-edge technologies:
+NexusSale is powered with stack of cutting-edge technologies:
 
 1. **NestJS**: A progressive Node.js framework for building efficient, reliable, and scalable server-side applications. Chosen for its modular
    architecture, dependency injection, and TypeScript support, enabling clean, maintainable code.
